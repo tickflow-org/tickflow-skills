@@ -1,13 +1,13 @@
 ---
 name: tickflow
-description: 使用 TickFlow Python SDK 获取 A 股、期货等市场的实时行情和 K 线数据
+description: 使用 TickFlow Python SDK 获取 A 股、港股、美股、期货等市场的实时行情和 K 线数据
 homepage: https://tickflow.org
 metadata: {"clawdbot":{"emoji":"📈","requires":{"bins":["python3","uv"],"env":["TICKFLOW_API_KEY"]}}}
 ---
 
 # TickFlow Skill
 
-通过 TickFlow Python SDK 获取 A 股、期货等市场的实时行情、K 线数据。支持多市场、多周期，适用于量化交易、数据分析等场景。
+通过 TickFlow Python SDK 获取 A 股、港股、美股、期货等市场的实时行情、K 线数据。支持多市场、多周期，适用于量化交易、数据分析等场景。
 
 ## 环境配置
 
@@ -90,13 +90,26 @@ source ~/.zshrc
 | **DCE** | 大连商品交易所 | 大商所期货 |
 | **ZCE** | 郑州商品交易所 | 郑商所期货 |
 | **CFX** | 中国金融期货交易所 | 中金所股指/国债期货 |
+| **INE** | 上海国际能源交易中心 | 原油等期货 |
+| **GFE** | 广州期货交易所 | 广期所期货 |
+| **US** | 美股 | 美国证券市场 |
+| **HK** | 港股 | 香港联交所 |
 
 ### 标的代码示例
 
-- 股票：`600000.SH`（浦发银行）、`000001.SZ`（平安银行）、`920662.BJ`（北交所股票）
+- A 股：`600000.SH`（浦发银行）、`000001.SZ`（平安银行）、`920662.BJ`（北交所股票）
+- 美股：`AAPL.US`（苹果）、`TSLA.US`（特斯拉）、`MSFT.US`（微软）
+- 港股：`00700.HK`（腾讯控股）、`09988.HK`（阿里巴巴）
 - ETF：`510300.SH`（沪深300ETF）、`159915.SZ`（创业板ETF）
 - 指数：`000001.SH`（上证指数）、`399006.SZ`（创业板指数）
 - 期货：`au2604.SHF`（黄金期货）、`i2605.DCE`（铁矿石期货）
+
+### 目前支持状态
+
+- **A 股（SH / SZ / BJ）**：已支持。可查实时行情、日 K、分钟 K、日内分时、财务数据、标的池（如 `CN_Equity_A`）等。
+- **国内期货（SHF / DCE / ZCE / CFX / INE / GFE）**：支持主力合约查询。按合约代码 + 后缀查询（如 `au2604.SHF`）。
+- **美股（US）**：已支持。实时行情、全量历史日 K 线（支持前复权/后复权）、除权因子、标的池（`US_Equity`）。
+- **港股（HK）**：已支持。实时行情、全量历史日 K 线（支持前复权/后复权）、除权因子、标的池（`HK_Equity`）。
 
 ## 快速开始
 
@@ -135,8 +148,8 @@ from tickflow import TickFlow
 # 自动读取环境变量 TICKFLOW_API_KEY
 tf = TickFlow()
 
-# 获取实时行情
-quotes = tf.quotes.get(symbols=["600000.SH", "000001.SZ"])
+# 获取实时行情（支持多市场）
+quotes = tf.quotes.get(symbols=["600000.SH", "AAPL.US", "00700.HK"])
 for q in quotes:
     print(f"{q['symbol']}: {q['last_price']}")
 ```
@@ -162,14 +175,18 @@ from tickflow import TickFlow
 
 tf = TickFlow()
 
-# 按标的代码查询
-quotes = tf.quotes.get(symbols=["600000.SH", "000001.SZ"])
+# 按标的代码查询（支持 A 股、港股、美股混合查询）
+quotes = tf.quotes.get(symbols=["600000.SH", "000001.SZ", "AAPL.US", "00700.HK"])
 for q in quotes:
     print(f"{q['symbol']}: {q['last_price']}")
 
-# 按标的池查询（获取全部 A 股）
-quotes_df = tf.quotes.get(universes=["CN_Equity_A"], as_dataframe=True)
+# 按标的池查询
+quotes_df = tf.quotes.get(universes=["CN_Equity_A"], as_dataframe=True)  # 全部 A 股
 print(quotes_df.head())
+
+# 获取美股/港股行情
+us_quotes = tf.quotes.get(universes=["US_Equity"], as_dataframe=True)
+hk_quotes = tf.quotes.get(universes=["HK_Equity"], as_dataframe=True)
 ```
 
 运行：`uv run python examples/quotes_example.py`
@@ -234,9 +251,15 @@ instruments = tf.instruments.get(symbols=["600000.SH", "000001.SZ"])
 for inst in instruments:
     print(f"{inst.symbol}: {inst.name}")
 
-# 查询标的池（全部 A 股）
+# 查询标的池
 a_stocks = tf.instruments.get(universes=["CN_Equity_A"])
 print(f"共有 {len(a_stocks)} 只 A 股")
+
+us_stocks = tf.instruments.get(universes=["US_Equity"])
+print(f"共有 {len(us_stocks)} 只美股")
+
+hk_stocks = tf.instruments.get(universes=["HK_Equity"])
+print(f"共有 {len(hk_stocks)} 只港股")
 ```
 
 运行：`uv run python examples/instruments_example.py`
@@ -316,6 +339,8 @@ for symbol, records in latest.items():
 - 首次使用需要运行 `uv sync` 安装依赖
 - SDK 支持 Python 3.9+，推荐使用 Python 3.10 或更高版本
 - 免费服务仅提供历史日 K 线，不含实时行情和分钟 K 线
+- 支持 A 股、港股、美股、国内期货等多市场，标的代码可混合查询
+- 美股/港股支持前复权、后复权 K 线和除权因子
 - 单次单标的最多获取 10000 根 K 线
 - 批量接口（`batch`、`intraday_batch`）适合大量标的数据获取
 - API Key 通过环境变量 `TICKFLOW_API_KEY` 配置
@@ -346,7 +371,7 @@ from tickflow import TickFlow
 
 tf = TickFlow()
 
-symbols = ["600000.SH", "000001.SZ"]
+symbols = ["600000.SH", "000001.SZ", "AAPL.US", "00700.HK"]
 
 while True:
     quotes = tf.quotes.get(symbols=symbols)
@@ -364,8 +389,8 @@ from tickflow import TickFlow
 
 tf = TickFlow()
 
-# 批量下载 K 线数据
-symbols = ["600000.SH", "000001.SZ", "600519.SH", "000858.SZ"]
+# 批量下载 K 线数据（支持多市场混合）
+symbols = ["600000.SH", "000001.SZ", "AAPL.US", "00700.HK"]
 dfs = tf.klines.batch(symbols, period="1d", count=1000, as_dataframe=True, show_progress=True)
 
 # 逐个保存
@@ -515,8 +540,8 @@ from tickflow import TickFlow
 
 tf = TickFlow()
 
-# 自选股列表
-watchlist = ["600519.SH", "000858.SZ", "600000.SH", "000001.SZ"]
+# 自选股列表（支持 A 股、港股、美股混合）
+watchlist = ["600519.SH", "000858.SZ", "AAPL.US", "00700.HK"]
 
 # 获取财务指标（一次性加载）
 latest_metrics = tf.financials.metrics(watchlist, latest=True)
