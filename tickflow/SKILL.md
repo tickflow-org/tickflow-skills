@@ -127,9 +127,9 @@ df = tf.klines.get("600000.SH", period="1d", count=100, as_dataframe=True)
 print(df.tail())
 
 # 查询标的信息
-instruments = tf.instruments.get(symbols=["600000.SH", "000001.SZ"])
+instruments = tf.instruments.batch(symbols=["600000.SH", "000001.SZ"])
 for inst in instruments:
-    print(f"{inst.symbol}: {inst.name}")
+    print(f"{inst['symbol']}: {inst['name']}")
 ```
 
 **免费服务特点：**
@@ -247,19 +247,10 @@ from tickflow import TickFlow
 tf = TickFlow()
 
 # 查询单个或多个标的信息
-instruments = tf.instruments.get(symbols=["600000.SH", "000001.SZ"])
+instruments = tf.instruments.batch(symbols=["600000.SH", "000001.SZ"])
 for inst in instruments:
-    print(f"{inst.symbol}: {inst.name}")
+    print(f"{inst['symbol']}: {inst['name']}")
 
-# 查询标的池
-a_stocks = tf.instruments.get(universes=["CN_Equity_A"])
-print(f"共有 {len(a_stocks)} 只 A 股")
-
-us_stocks = tf.instruments.get(universes=["US_Equity"])
-print(f"共有 {len(us_stocks)} 只美股")
-
-hk_stocks = tf.instruments.get(universes=["HK_Equity"])
-print(f"共有 {len(hk_stocks)} 只港股")
 ```
 
 运行：`uv run python examples/instruments_example.py`
@@ -408,8 +399,7 @@ from tickflow import TickFlow
 tf = TickFlow()
 
 # 获取 A 股标的池
-a_stocks = tf.instruments.get(universes=["CN_Equity_A"])
-symbols = [inst.symbol for inst in a_stocks[:200]]  # 示例：取前200只
+symbols  = tf.universes.get("CN_Equity_A")['symbols'][:200]
 
 # 获取最新财务指标
 metrics = tf.financials.metrics(symbols, latest=True, as_dataframe=True)
